@@ -44,17 +44,16 @@
   </div>
 
   <!-- Écran de Fin -->
-  <div id="step-end" class="card" style="display: none;">
-    <h2>Merci d'avoir voté ! 🎉</h2>
-    <button onclick="loadLeaderboard()">Voir le classement général</button>
-    <ul id="leaderboard"></ul>
-  </div>
+<div id="step-end" class="card" style="display: none;">
+  <h2>Merci d'avoir voté ! 🎉</h2>
+  <p>Les résultats ont bien été enregistrés !</p>
+</div>
 
   <script>
     // Config Supabase
     const SUPABASE_URL = "https://kozcbpxynahyhgworfrb.supabase.co";
     const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtvemNicHh5bmFoeWhnd29yZnJiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODg4OTUxNzksImV4cCI6MjEwNDQ3MTE3OX0.TfjGdpfaoCTkaLY0fLQFtaWeWDsMrQW3k2Qe3ADEgqU";
-    const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
     let currentQuestionIndex = 0;
     let questions = [];
@@ -67,8 +66,8 @@
       if (!voterName) return alert("Rentre ton prénom !");
 
       // Charger participants et questions
-      const { data: pData } = await supabase.from('participants').select('*');
-      const { data: qData } = await supabase.from('questions').select('*');
+      const { data: pData } = await supabaseClient.from('participants').select('*');
+      const { data: qData } = await supabaseClient.from('questions').select('*');
 
       participants = pData;
       questions = qData;
@@ -126,7 +125,7 @@
       });
 
       // Envoyer les résultats à Supabase
-      const { error } = await supabase.from('votes').insert(votesToInsert);
+      const { error } = await supabaseClient.from('votes').insert(votesToInsert);
       
       if (error) {
         alert("Erreur lors de l'enregistrement !");
