@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Quiz Ranking entre Potes</title>
+  
+  <!-- Supabase JS Client -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <!-- SortableJS pour le Drag & Drop -->
+  <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
+
+  <style>
+    body { font-family: sans-serif; max-width: 500px; margin: 20px auto; padding: 10px; }
+    .card { background: #f4f4f9; padding: 15px; border-radius: 8px; margin-bottom: 20px; }
+    ul { list-style: none; padding: 0; }
+    li { 
+      background: #fff; border: 1px solid #ccc; padding: 12px; margin: 5px 0; 
+      border-radius: 5px; cursor: grab; display: flex; justify-content: space-between;
+    }
+    button { background: #007bff; color: white; border: none; padding: 10px 15px; border-radius: 5px; cursor: pointer; width: 100%; font-size: 16px; }
+    .rank-badge { background: #eee; padding: 2px 8px; border-radius: 3px; font-weight: bold; }
+  </style>
+</head>
+<body>
+
+  <h1>Quiz du Groupe</h1>
+
+  <!-- Identification du joueur -->
+  <div id="step-user" class="card">
+    <h3>Qui es-tu ?</h3>
+    <input type="text" id="voter-name" placeholder="Ton prénom" style="width: 95%; padding: 8px;">
+    <button onclick="startQuiz()" style="margin-top: 10px;">Commencer</button>
+  </div>
+
+  <!-- Zone de Question -->
+  <div id="step-quiz" class="card" style="display: none;">
+    <h2 id="question-title">Chargement...</h2>
+    <p><small>Glisse-dépose du <strong>plus (en haut)</strong> au <strong>moins (en bas)</strong>.</small></p>
+    
+    <ul id="ranking-list"></ul>
+
+    <button onclick="submitRankings()">Valider cette question</button>
+  </div>
+
+  <!-- Écran de Fin -->
+  <div id="step-end" class="card" style="display: none;">
+    <h2>Merci d'avoir voté ! 🎉</h2>
+    <button onclick="loadLeaderboard()">Voir le classement général</button>
+    <ul id="leaderboard"></ul>
+  </div>
+
+  <script>
+    // Config Supabase
+    const SUPABASE_URL = "https://kozcbpxynahyhgworfrb.supabase.co";
+    const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtvemNicHh5bmFoeWhnd29yZnJiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODg4OTUxNzksImV4cCI6MjEwNDQ3MTE3OX0.TfjGdpfaoCTkaLY0fLQFtaWeWDsMrQW3k2Qe3ADEgqU";
+    const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+    let currentQuestionIndex = 0;
+    let questions = [];
+    let participants = [];
+    let voterName = "";
+    let sortableInstance = null;
+
+    async function startQuiz() {
+      voterName = document.getElementById('voter-name').value.trim();
+      if (!voterName) return alert("Rentre ton prénom !");
+
+      // Charger participants et questions
+      const { data: pData } = await supabase.from('participants').select('*');
+      const { data: qData } = await supabase.from('questions').select('*');
+
+      participants = pData;
+      questions = qData;
+
+      document.getElementById('step-user').style.display = 'none';
+      document.getElementById('step-quiz').style.display = 'block';
+
+      // Initialiser le Drag & Drop
+      const el = document.getElementById('ranking-list');
+      sortableInstance = new Sortable(el, { animation: 150 });
+
+      showQuestion();
+    }
+
+    function showQuestion() {
+      if (currentQuestionIndex >= questions.length) {
+        document.getElementById('step-quiz').style.display = 'none';
+        document.getElementById('step-end').style.display = 'block';
+        return;
+      }
+
+      const q = questions[currentQuestionIndex];
+      document.getElementById('question-title').innerText = q.title;
+
+      const listEl = document.getElementById('ranking-list');
+      listEl.innerHTML = '';
+
+      // Mélanger les participants au départ de chaque question
+      const shuffled = [...participants].sort(() => Math.random() - 0.5);
+
+      shuffled.forEach(p => {
+        const li = document.createElement('li');
+        li.dataset.id = p.id;
+        li.innerHTML = `<span>${p.name}</span> ☰`;
+        listEl.appendChild(li);
+      });
+    }
+
+    async function submitRankings() {
+      const listEl = document.getElementById('ranking-list');
+      const items = Array.from(listEl.children);
+      const totalParticipants = items.length; // ex: 6
+
+      const votesToInsert = items.map((item, index) => {
+        const rank = index + 1; // 1er à 6e
+        const points = totalParticipants - rank; // 1er -> 5 pts, ..., 6e -> 0 pt
+
+        return {
+          voter_name: voterName,
+          question_id: questions[currentQuestionIndex].id,
+          participant_id: item.dataset.id,
+          rank: rank,
+          points: points
+        };
+      });
+
+      // Envoyer les résultats à Supabase
+      const { error } = await supabase.from('votes').insert(votesToInsert);
+      
+      if (error) {
+        alert("Erreur lors de l'enregistrement !");
+        console.error(error);
+        return;
+      }
+
+      currentQuestionIndex++;
+      showQuestion();
+    }
+
+    async function loadLeaderboard() {
+      // Récupérer tous les votes pour faire la somme des points
+      const { data, error } = await supabase
+        .from('votes')
+        .select('participant_id, points, participants(name)');
+
+      if (error) return console.error(error);
+
+      // Calculer le total par participant
+      const scores = {};
+      data.forEach(vote => {
+        const name = vote.participants.name;
+        scores[name] = (scores[name] || 0) + vote.points;
+      });
+
+      // Trier par score décroissant
+      const sorted = Object.entries(scores).sort((a, b) => b[1] - a[1]);
+
+      const leaderboardEl = document.getElementById('leaderboard');
+      leaderboardEl.innerHTML = '';
+      sorted.forEach(([name, score]) => {
+        const li = document.createElement('li');
+        li.innerHTML = `<strong>${name}</strong> <span class="rank-badge">${score} pts</span>`;
+        leaderboardEl.appendChild(li);
+      });
+    }
+  </script>
+</body>
+</html>
