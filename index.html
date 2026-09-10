@@ -3,189 +3,266 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Quiz Ranking entre Potes</title>
-  
-  <!-- Supabase JS Client -->
+  <title>Barbie Gang Awards 2026</title>
+  <!-- Police moderne Google Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <!-- Supabase JS -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <!-- SortableJS pour le Drag & Drop -->
+  <!-- SortableJS pour le drag & drop -->
   <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
 
-  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
+  <style>
+    * {
+      box-sizing: border-box;
+      font-family: 'Poppins', sans-serif;
+    }
 
-<style>
-  /* Appliquer la police à toute la page */
-  body {
-    font-family: 'Poppins', sans-serif;
-    background-color: #f4f6f9;
-    color: #333;
-  }
+    body {
+      background-color: #fce4ec; /* Rose pastel */
+      margin: 0;
+      padding: 20px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      text-align: center;
+    }
 
-  /* Style de base des cartes/lignes à glisser-déposer */
-  .draggable-item {
-    padding: 12px 18px;
-    margin-bottom: 8px;
-    border-radius: 10px;
-    font-weight: 600;
-    color: #ffffff; /* Texte blanc pour contraster avec les couleurs */
-    cursor: grab;
-    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-    transition: transform 0.15s ease;
-  }
+    .container {
+      background: #ffffff;
+      width: 100%;
+      max-width: 500px;
+      padding: 30px 20px;
+      border-radius: 24px;
+      box-shadow: 0 10px 25px rgba(233, 30, 99, 0.15);
+    }
 
-  .draggable-item:active {
-    cursor: grabbing;
-    transform: scale(1.02);
-  }
+    h1 {
+      color: #d81b60;
+      font-size: 26px;
+      font-weight: 800;
+      margin-top: 0;
+      margin-bottom: 20px;
+    }
 
-  /* Couleurs personnalisées selon le prénom du participant */
-  .draggable-item[data-name="Bea"]   { background-color: #ffc629; } /* Rouge / Rose */
-  .draggable-item[data-name="Ines"]     { background-color: #dd6b2d; } /* Turquoise */
-  .draggable-item[data-name="Lena"] { background-color: #66f4ef; } /* Bleu */
-  .draggable-item[data-name="Lucie"]   { background-color: #9b4ea7; } /* Orange pastel */
-  .draggable-item[data-name="Stéphane"]    { background-color: #3827F5; } /* Vert menthe */
-  .draggable-item[data-name="Victoria"]   { background-color: #ff5e9c; } /* Violet pastel */
-</style>
+    h2 {
+      color: #333;
+      font-size: 18px;
+      margin-bottom: 10px;
+    }
+
+    p.subtitle {
+      color: #666;
+      font-size: 13px;
+      margin-bottom: 20px;
+    }
+
+    input[type="text"] {
+      width: 80%;
+      padding: 12px;
+      border: 2px solid #f8bbd0;
+      border-radius: 12px;
+      font-size: 16px;
+      text-align: center;
+      outline: none;
+      margin-bottom: 15px;
+    }
+
+    button {
+      background-color: #ec407a;
+      color: white;
+      border: none;
+      padding: 12px 24px;
+      font-size: 16px;
+      font-weight: 600;
+      border-radius: 12px;
+      cursor: pointer;
+      box-shadow: 0 4px 10px rgba(236, 64, 122, 0.3);
+      transition: background 0.2s;
+    }
+
+    button:hover {
+      background-color: #d81b60;
+    }
+
+    /* Liste des prénoms */
+    #sortable-list {
+      list-style: none;
+      padding: 0;
+      margin: 0 auto 20px auto;
+      max-width: 400px;
+      counter-reset: rank-counter; /* Initialise le compteur de position */
+    }
+
+    .draggable-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 20px;
+      margin-bottom: 10px;
+      border-radius: 16px; /* Bords bien arrondis */
+      color: white;
+      font-weight: 600;
+      font-size: 16px;
+      cursor: grab;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.08);
+      user-select: none;
+    }
+
+    /* Numérotation automatique (1er, 2ème...) */
+    .draggable-item::before {
+      counter-increment: rank-counter;
+      content: counter(rank-counter) "er";
+      background: rgba(255, 255, 255, 0.3);
+      padding: 4px 10px;
+      border-radius: 10px;
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    /* Correctif orthographique pour les positions après le 1er */
+    .draggable-item:nth-child(n+2)::before {
+      content: counter(rank-counter) "ème";
+    }
+
+    /* Couleurs pastel personnalisées par position */
+    .draggable-item:nth-child(1) { background-color: #ff758c; }
+    .draggable-item:nth-child(2) { background-color: #ff7eb3; }
+    .draggable-item:nth-child(3) { background-color: #74ebd5; }
+    .draggable-item:nth-child(4) { background-color: #9ac2facb; }
+    .draggable-item:nth-child(5) { background-color: #a1c4fd; }
+    .draggable-item:nth-child(6) { background-color: #c2e9fb; color: #444; }
+  </style>
 </head>
 <body>
 
-  <h1>Quiz du Groupe</h1>
+  <div class="container">
+    <h1>Barbie Gang Awards 2026</h1>
 
-  <!-- Identification du joueur -->
-  <div id="step-user" class="card">
-    <h3>Qui es-tu ?</h3>
-    <input type="text" id="voter-name" placeholder="Ton prénom" style="width: 95%; padding: 8px;">
-    <button onclick="startQuiz()" style="margin-top: 10px;">Commencer</button>
+    <!-- Étape 1 : Saisie du nom -->
+    <div id="step-login">
+      <h2>Qui es-tu ?</h2>
+      <input type="text" id="voter-name" placeholder="Ton prénom...">
+      <br>
+      <button onclick="startQuiz()">Commencer</button>
+    </div>
+
+    <!-- Étape 2 : Question & Votes -->
+    <div id="step-quiz" style="display: none;">
+      <h2 id="question-title">Chargement de la question...</h2>
+      <p class="subtitle">Glisse-dépose du <b>plus</b> (en haut) au <b>moins</b> (en bas).</p>
+      
+      <ul id="sortable-list"></ul>
+
+      <button onclick="submitRankings()">Valider mon choix</button>
+    </div>
+
+    <!-- Étape 3 : Écran de fin -->
+    <div id="step-end" style="display: none;">
+      <h2>Merci d'avoir voté ! 🎉</h2>
+      <p>Tes réponses pour les Barbie Gang Awards 2026 ont été enregistrées avec succès.</p>
+    </div>
   </div>
-
-  <!-- Zone de Question -->
-  <div id="step-quiz" class="card" style="display: none;">
-    <h2 id="question-title">Chargement...</h2>
-    <p><small>Glisse-dépose du <strong>plus (en haut)</strong> au <strong>moins (en bas)</strong>.</small></p>
-    
-    <ul id="ranking-list"></ul>
-
-    <button onclick="submitRankings()">Valider cette question</button>
-  </div>
-
-  <!-- Écran de Fin -->
-<div id="step-end" class="card" style="display: none;">
-  <h2>Merci d'avoir voté ! 🎉</h2>
-  <p>Les résultats ont bien été enregistrés !</p>
-</div>
 
   <script>
-    // Config Supabase
+    // TES CLÉS SUPABASE
     const SUPABASE_URL = "https://kozcbpxynahyhgworfrb.supabase.co";
-    const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtvemNicHh5bmFoeWhnd29yZnJiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODg4OTUxNzksImV4cCI6MjEwNDQ3MTE3OX0.TfjGdpfaoCTkaLY0fLQFtaWeWDsMrQW3k2Qe3ADEgqU";
+    const SUPABASE_ANON_KEY = "COLLE_TA_CLE_ANON_ICI"; // Remplace par ta vraie clé anon
+
     const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-    let currentQuestionIndex = 0;
+    let currentVoter = "";
     let questions = [];
     let participants = [];
-    let voterName = "";
+    let currentQuestionIndex = 0;
     let sortableInstance = null;
 
     async function startQuiz() {
-      voterName = document.getElementById('voter-name').value.trim();
-      if (!voterName) return alert("Rentre ton prénom !");
+      const nameInput = document.getElementById("voter-name").value.trim();
+      if (!nameInput) {
+        alert("Renseigne ton prénom pour continuer !");
+        return;
+      }
+      currentVoter = nameInput;
 
       // Charger participants et questions
-      const { data: pData } = await supabaseClient.from('participants').select('*');
-      const { data: qData } = await supabaseClient.from('questions').select('*');
+      const { data: partData } = await supabaseClient.from('participants').select('*');
+      const { data: questData } = await supabaseClient.from('questions').select('*');
 
-      participants = pData;
-      questions = qData;
-
-      document.getElementById('step-user').style.display = 'none';
-      document.getElementById('step-quiz').style.display = 'block';
-
-      // Initialiser le Drag & Drop
-      const el = document.getElementById('ranking-list');
-      sortableInstance = new Sortable(el, { animation: 150 });
-
-      showQuestion();
-    }
-
-    function showQuestion() {
-      if (currentQuestionIndex >= questions.length) {
-        document.getElementById('step-quiz').style.display = 'none';
-        document.getElementById('step-end').style.display = 'block';
+      if (!partData || !questData || questData.length === 0) {
+        alert("Erreur de chargement des données. Vérifie Supabase.");
         return;
       }
 
-      const q = questions[currentQuestionIndex];
-      document.getElementById('question-title').innerText = q.title;
+      participants = partData;
+      questions = questData;
 
-      const listEl = document.getElementById('ranking-list');
-      listEl.innerHTML = '';
+      document.getElementById("step-login").style.display = "none";
+      document.getElementById("step-quiz").style.display = "block";
 
-      // Mélanger les participants au départ de chaque question
-      const shuffled = [...participants].sort(() => Math.random() - 0.5);
+      renderQuestion();
+    }
+
+    function renderQuestion() {
+      if (currentQuestionIndex >= questions.length) {
+        document.getElementById("step-quiz").style.display = "none";
+        document.getElementById("step-end").style.display = "block";
+        return;
+      }
+
+      document.getElementById("question-title").textContent = questions[currentQuestionIndex].title;
+
+      const listElement = document.getElementById("sortable-list");
+      listElement.innerHTML = "";
+
+      // Mélanger les participants au départ
+      let shuffled = [...participants].sort(() => Math.random() - 0.5);
 
       shuffled.forEach(p => {
-        const li = document.createElement('li');
+        const li = document.createElement("li");
+        li.className = "draggable-item";
         li.dataset.id = p.id;
-        li.innerHTML = `<span>${p.name}</span> ☰`;
-        listEl.appendChild(li);
+        li.appendChild(document.createTextNode(p.name));
+        listElement.appendChild(li);
+      });
+
+      if (sortableInstance) sortableInstance.destroy();
+
+      sortableInstance = new Sortable(listElement, {
+        animation: 150
       });
     }
 
     async function submitRankings() {
-      const listEl = document.getElementById('ranking-list');
-      const items = Array.from(listEl.children);
-      const totalParticipants = items.length; // ex: 6
+      const listItems = document.querySelectorAll("#sortable-list .draggable-item");
+      const currentQuestion = questions[currentQuestionIndex];
 
-      const votesToInsert = items.map((item, index) => {
-        const rank = index + 1; // 1er à 6e
-        const points = totalParticipants - rank; // 1er -> 5 pts, ..., 6e -> 0 pt
+      const votesToInsert = [];
+      const totalCount = listItems.length;
 
-        return {
-          voter_name: voterName,
-          question_id: questions[currentQuestionIndex].id,
-          participant_id: item.dataset.id,
+      listItems.forEach((item, index) => {
+        const participantId = item.dataset.id;
+        const rank = index + 1;
+        const points = totalCount - rank; // 1er = 5 pts, 6ème = 0 pts
+
+        votesToInsert.push({
+          voter_name: currentVoter,
+          question_id: currentQuestion.id,
+          participant_id: participantId,
           rank: rank,
           points: points
-        };
+        });
       });
 
-      // Envoyer les résultats à Supabase
       const { error } = await supabaseClient.from('votes').insert(votesToInsert);
-      
+
       if (error) {
-        alert("Erreur lors de l'enregistrement !");
-        console.error(error);
+        alert("Erreur lors de l'enregistrement : " + error.message);
         return;
       }
 
       currentQuestionIndex++;
-      showQuestion();
-    }
-
-    async function loadLeaderboard() {
-      // Récupérer tous les votes pour faire la somme des points
-      const { data, error } = await supabase
-        .from('votes')
-        .select('participant_id, points, participants(name)');
-
-      if (error) return console.error(error);
-
-      // Calculer le total par participant
-      const scores = {};
-      data.forEach(vote => {
-        const name = vote.participants.name;
-        scores[name] = (scores[name] || 0) + vote.points;
-      });
-
-      // Trier par score décroissant
-      const sorted = Object.entries(scores).sort((a, b) => b[1] - a[1]);
-
-      const leaderboardEl = document.getElementById('leaderboard');
-      leaderboardEl.innerHTML = '';
-      sorted.forEach(([name, score]) => {
-        const li = document.createElement('li');
-        li.innerHTML = `<strong>${name}</strong> <span class="rank-badge">${score} pts</span>`;
-        leaderboardEl.appendChild(li);
-      });
+      renderQuestion();
     }
   </script>
 </body>
